@@ -566,6 +566,18 @@ if st.session_state.search_results:
                 with col1:
                     if track['preview_url']:
                         st.audio(track['preview_url'])
+                        st.markdown("""
+                            <div style='
+                                padding: 8px 15px;
+                                border-radius: 10px;
+                                background: rgba(255, 255, 255, 0.1);
+                                display: inline-block;
+                                font-size: 0.9rem;
+                                margin: 5px 0;
+                            '>
+                                ℹ Preview is limited to 30 seconds - Click "Open in Spotify" for full song
+                            </div>
+                        """, unsafe_allow_html=True)
                     else:
                         st.markdown("""
                             <div style='
@@ -753,7 +765,7 @@ st.sidebar.markdown(r"""
             align-items: center;
             gap: 10px;
         '>
-            <span>🎵</span> Spotify Connection
+            <span>🎵</span> EmoTunes Connections
         </h2>
     </div>
 """, unsafe_allow_html=True)
