@@ -33,11 +33,56 @@ def get_spotify_client(token_info=None):
 
 # Emotion to genres mapping with more detailed categories
 emotion_genres = {
-    "happy": ["pop", "dance", "party", "happy", "feel-good"],
-    "sad": ["acoustic", "piano", "sad", "melancholic", "ballad"],
-    "angry": ["rock", "metal", "hardcore", "punk", "aggressive"],
-    "neutral": ["indie", "alternative", "chill", "ambient"],
-    "calm": ["ambient", "classical", "lo-fi", "meditation", "peaceful"]
+    "energetic": [
+        "edm", "rock", "workout", "electronic", "dance", "power", 
+        "gym", "motivation", "high-intensity", "cardio", "pump",
+        "energy", "adrenaline"
+    ],
+    "romantic": [
+        "r&b", "soft pop", "ballads", "love songs", "romantic",
+        "soul", "slow jams", "romance", "passionate", "love",
+        "dreamy", "affectionate"
+    ],
+    "heartbroken": [
+        "indie", "sad pop", "acoustic", "melancholic", "emotional",
+        "breakup songs", "heartbreak", "longing", "reflective",
+        "sad acoustic", "emotional ballads"
+    ],
+    "chill": [
+        "lo-fi", "chillhop", "acoustic", "relaxing", "chill",
+        "ambient", "laid back", "easy listening", "breezy",
+        "beach", "coffeehouse", "mellow"
+    ],
+    "uplifting": [
+        "gospel", "motivational", "indie pop", "inspirational",
+        "positive", "feel good", "confidence", "upbeat",
+        "hopeful", "empowering", "sunshine"
+    ],
+    "dark": [
+        "alt rock", "dark pop", "trap soul", "moody", "intense",
+        "mysterious", "dark", "introspective", "alternative",
+        "underground", "brooding"
+    ],
+    "party": [
+        "dance", "reggaeton", "pop hits", "party", "club",
+        "disco", "celebration", "fun", "fiesta", "dance pop",
+        "top hits", "party anthems"
+    ],
+    "nostalgic": [
+        "retro", "classics", "synthwave", "oldies", "vintage",
+        "throwback", "old school", "memories", "80s", "90s",
+        "sentimental", "golden oldies"
+    ],
+    "angry": [
+        "metal", "punk", "hardcore rap", "aggressive", "heavy metal",
+        "rage", "rebellion", "defiant", "intense", "hard rock",
+        "screamo", "thrash"
+    ],
+    "lonely": [
+        "ambient", "minimalist", "acoustic", "quiet", "solitude",
+        "isolation", "minimal", "atmospheric", "contemplative",
+        "solo piano", "ethereal"
+    ]
 }
 
 def search_tracks(query, token_info=None, limit=10):
@@ -93,36 +138,60 @@ def add_tracks_to_playlist(playlist_id, track_uris, token_info):
 
 def get_playlist_for_emotion_and_language(emotion, language, genre=None, token_info=None):
     """
-    Fetch playlists based on emotion, language, and optional genre filter.
-    If token_info is provided, use authenticated Spotify client, else fallback to public client.
+    Fetch playlists based on emotion and language with optimized search.
     """
     playlists = []
-    genres = emotion_genres.get(emotion.lower(), ["pop"])
-    
-    # Add genre filter if specified
-    if genre and genre != "All Genres":
-        genres = [genre.lower()]
-    
     sp = get_spotify_client(token_info)
     
-    for genre in genres:
-        query = f"{genre} {language} {emotion}"
-        try:
-            results = sp.search(q=query, type="playlist", limit=2)
-            playlist_data = results.get("playlists", {}).get("items", [])
-            
-            for playlist in playlist_data:
-                playlists.append({
-                    "name": playlist["name"],
-                    "url": playlist["external_urls"]["spotify"],
-                    "uri": playlist["uri"],
-                    "description": playlist.get("description", ""),
-                    "image": playlist["images"][0]["url"] if playlist["images"] else None
-                })
-        except Exception as e:
-            print(f"Error fetching playlist for '{query}': {e}")
-            
-    return playlists
+    # Simplified language mapping
+    language_queries = {
+        "English": ["english playlist", "english songs"],
+        "Hindi": ["hindi songs", "bollywood songs"],
+        "Kannada": ["kannada songs", "kannada hits"],
+        "Telugu": ["telugu songs", "tollywood hits"],
+        "Tamil": ["tamil songs", "kollywood hits"]
+    }
+
+    # Get base queries for the selected language
+    base_queries = language_queries.get(language, [language.lower()])
+    
+    try:
+        # Make just 2-3 targeted searches instead of many combinations
+        for query in base_queries:
+            search_query = f"{emotion} {query}"
+            try:
+                results = sp.search(q=search_query, type="playlist", limit=3)
+                if results and 'playlists' in results and 'items' in results['playlists']:
+                    playlist_data = results['playlists']['items']
+                    
+                    for playlist in playlist_data:
+                        # Basic validation to ensure we have all required fields
+                        if not playlist or 'uri' not in playlist:
+                            continue
+                            
+                        # Check if playlist is not already added
+                        if not any(p['uri'] == playlist['uri'] for p in playlists):
+                            playlists.append({
+                                "name": playlist.get("name", "Untitled Playlist"),
+                                "url": playlist.get("external_urls", {}).get("spotify", ""),
+                                "uri": playlist["uri"],
+                                "description": playlist.get("description", ""),
+                                "image": playlist.get("images", [{}])[0].get("url") if playlist.get("images") else None
+                            })
+                            
+                        # If we have enough playlists, stop searching
+                        if len(playlists) >= 6:
+                            return playlists
+                            
+            except Exception as e:
+                print(f"Warning: Error in search query '{search_query}': {str(e)}")
+                continue
+                
+        return playlists
+        
+    except Exception as e:
+        print(f"Error in playlist search: {str(e)}")
+        return []
 
 def save_track_to_library(track_uri, token_info):
     """Save a track to user's Spotify library"""
@@ -132,4 +201,4 @@ def save_track_to_library(track_uri, token_info):
         return True
     except Exception as e:
         print(f"Error saving track: {e}")
-        return False                                    
+        return False 

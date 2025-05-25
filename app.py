@@ -10,6 +10,59 @@ from spotify_module import (
     sp_oauth
 )
 
+# Define mood mappings with emojis and mesmerizing color combinations
+MOOD_MAPPING = {
+    "⚡ Energetic": {
+        "emotion": "energetic",
+        "color": "#FF4D4D",  # Vibrant red
+        "gradient": ["#FF4D4D", "#FF8C42", "#FFA07A"],
+        "secondary_gradient": ["#FFD141", "#FF8C42"],
+        "contrast": "#2A2A3C",
+        "icon": "⚡"
+    },
+    "💝 Romantic": {
+        "emotion": "romantic",
+        "color": "#FF69B4",  # Hot pink
+        "gradient": ["#FF69B4", "#FFB6C1", "#FFC0CB"],
+        "secondary_gradient": ["#FF1493", "#FF69B4"],
+        "contrast": "#2D1F2A",
+        "icon": "💝"
+    },
+    "💔 Heartbroken": {
+        "emotion": "heartbroken",
+        "color": "#4A4A8F",  # Deep blue
+        "gradient": ["#4A4A8F", "#6B6BB8", "#8080C0"],
+        "secondary_gradient": ["#483D8B", "#6959CD"],
+        "contrast": "#1A1A2E",
+        "icon": "💔"
+    },
+    "🎉 Party": {
+        "emotion": "party",
+        "color": "#FF1493",  # Deep pink
+        "gradient": ["#FF1493", "#FF69B4", "#FFB6C1"],
+        "secondary_gradient": ["#FF00FF", "#FF1493"],
+        "contrast": "#2A1F2D",
+        "icon": "🎉"
+    },
+    "😠 Angry": {
+        "emotion": "angry",
+        "color": "#8B0000",  # Dark red
+        "gradient": ["#8B0000", "#B22222", "#CD5C5C"],
+        "secondary_gradient": ["#DC143C", "#8B0000"],
+        "contrast": "#1A0F0F",
+        "icon": "😠"
+    }
+}
+
+# Update mood quotes for the new moods
+MOOD_QUOTES = {
+    "⚡ Energetic": "Time to get pumped up and moving!",
+    "💝 Romantic": "Let love fill the air with sweet melodies.",
+    "💔 Heartbroken": "Music heals the heart's deepest wounds.",
+    "🎉 Party": "Let's turn up the fun and dance!",
+    "😠 Angry": "Channel that energy into powerful beats."
+}
+
 # Page config must be the first Streamlit command
 st.set_page_config(
     page_title="EmoTunes",
@@ -27,449 +80,108 @@ if 'search_results' not in st.session_state:
     st.session_state.search_results = None
 if 'saved_tracks' not in st.session_state:
     st.session_state.saved_tracks = []
+if 'selected_mood' not in st.session_state:
+    st.session_state.selected_mood = "⚡ Energetic"  # Default mood
+
+# Function to update mood and trigger rerun
+def update_mood(new_mood):
+    st.session_state.selected_mood = new_mood
+    st.rerun()  # Using st.rerun() instead of experimental_rerun
 
 # Custom CSS for modern styling with enhanced blur and softer transitions
-st.markdown(r"""
+st.markdown(f"""
 <style>
     /* Import Google Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Quicksand:wght@400;500;600;700&family=Comfortaa:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap');
 
     /* Base Font Settings */
-    * {
+    * {{
         font-family: 'Poppins', sans-serif;
-    }
+    }}
 
     /* Modern Card Styling with enhanced depth */
-    .stApp {
-        font-family: 'Poppins', sans-serif;
-        background: rgba(255, 255, 255, 0.02) !important;
-        background-attachment: fixed !important;
-        -webkit-background-size: cover !important;
-        -moz-background-size: cover !important;
-        -o-background-size: cover !important;
-        background-size: cover !important;
-        position: relative;
-        overflow: hidden;
-    }
+    .stApp {{
+        background: linear-gradient(135deg, 
+            {MOOD_MAPPING[st.session_state.selected_mood]["gradient"][0]}dd 0%,
+            {MOOD_MAPPING[st.session_state.selected_mood]["gradient"][1]}ee 50%,
+            {MOOD_MAPPING[st.session_state.selected_mood]["gradient"][2]}dd 100%
+        ) !important;
+        background-size: 400% 400% !important;
+        animation: gradientBG 15s ease infinite;
+        min-height: 100vh;
+    }}
 
     /* Typography Styles */
-    h1, h2, h3, h4, h5, h6 {
+    h1, h2, h3, h4, h5, h6 {{
         font-family: 'Quicksand', sans-serif;
         font-weight: 700;
-        letter-spacing: 0.5px;
-    }
-
-    .stSelectbox label, .stTextInput label {
-        font-family: 'Poppins', sans-serif;
-        font-weight: 500 !important;
-        letter-spacing: 0.3px;
-    }
-
-    p, div {
-        font-family: 'Poppins', sans-serif;
-        font-weight: 400;
-    }
-
-    /* Enhanced floating particles effect with music notes */
-    @keyframes float-particles {
-        0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0.3; }
-        25% { transform: translateY(-20px) translateX(10px) rotate(5deg); opacity: 0.6; }
-        50% { transform: translateY(-35px) translateX(-10px) rotate(-5deg); opacity: 0.8; }
-        75% { transform: translateY(-20px) translateX(15px) rotate(3deg); opacity: 0.6; }
-    }
-
-    .particle {
-        position: fixed;
-        width: 24px;
-        height: 24px;
-        pointer-events: none;
-        opacity: 0.3;
-        z-index: -1;
-        filter: blur(1px);
-        font-family: 'Arial Unicode MS', sans-serif;
-        content: '♪';
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .particle::before {
-        content: '♪';
-        position: absolute;
-    }
-
-    /* Accent Colors */
-    .accent-teal {
-        color: #4ECDC4 !important;
-    }
-
-    .accent-lavender {
-        color: #9D84B7 !important;
-    }
+        color: white;
+    }}
 
     /* Button Styling */
-    .stButton button {
+    .stButton > button {{
         font-family: 'Quicksand', sans-serif !important;
         font-weight: 600 !important;
-        letter-spacing: 0.5px !important;
-        padding: 0.6em 1.2em !important;
-        background: linear-gradient(135deg, #4ECDC4, #9D84B7) !important;
+        padding: 0.4em 1em !important;
         border: none !important;
+        background: rgba(255, 255, 255, 0.1) !important;
         color: white !important;
         transition: all 0.3s ease !important;
-    }
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+    }}
 
-    .stButton button:hover {
+    .stButton > button:hover {{
         transform: translateY(-2px) !important;
-        box-shadow: 0 5px 15px rgba(78, 205, 196, 0.3) !important;
-    }
+        background: rgba(255, 255, 255, 0.2) !important;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2) !important;
+    }}
 
-    /* Dropdown Styling */
-    .stSelectbox > div > div {
-        font-family: 'Poppins', sans-serif !important;
-        font-weight: 500 !important;
-    }
+    /* Primary button style for selected mood */
+    .stButton > button[kind="primary"] {{
+        background: linear-gradient(135deg,
+            {MOOD_MAPPING[st.session_state.selected_mood]["gradient"][0]} 0%,
+            {MOOD_MAPPING[st.session_state.selected_mood]["gradient"][1]} 100%
+        ) !important;
+        box-shadow: 0 4px 12px {MOOD_MAPPING[st.session_state.selected_mood]["gradient"][0]}66 !important;
+    }}
 
     /* Input Field Styling */
-    .stTextInput input {
-        color: #000000 !important;  /* Black text */
-        font-weight: 500 !important;
-        background-color: rgba(255, 255, 255, 0.9) !important;  /* More opaque white background */
-        border: 1px solid rgba(157, 132, 183, 0.3) !important;
-    }
-    
-    .stTextInput input::placeholder {
-        color: rgba(0, 0, 0, 0.5) !important;  /* Dark gray for placeholder */
-    }
-    
-    .stTextInput input:focus {
-        border-color: #9D84B7 !important;
-        box-shadow: 0 0 0 1px #9D84B7 !important;
-    }
+    .stTextInput input {{
+        background-color: rgba(255, 255, 255, 0.9) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        color: #333 !important;
+        border-radius: 8px !important;
+    }}
 
-    /* Container Styling */
-    .glass-container {
-        font-family: 'Poppins', sans-serif;
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        border-radius: 15px;
-        padding: 20px;
-        margin: 10px 0;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-    }
+    /* Selectbox Styling */
+    .stSelectbox > div > div {{
+        background-color: rgba(255, 255, 255, 0.9) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        color: #333 !important;
+        border-radius: 8px !important;
+    }}
 
-    /* Title Container */
-    .title-container {
-        font-family: 'Quicksand', sans-serif;
-        text-align: center;
-        margin: 2rem auto;
-        padding: 0.5rem;
-        position: relative;
-        max-width: 800px;
-    }
-
-    .main-title {
-        font-family: 'Quicksand', sans-serif;
-        font-size: 3.2rem;
-        font-weight: 700;
-        color: #FFFFFF;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        margin: 0;
-        padding: 0.5rem 1rem;
-        position: relative;
-        display: inline-block;
-        text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.2);
-    }
-
-    .title-emotunes {
-        background: linear-gradient(
-            to right,
-            #FF6B6B,
-            #4ECDC4,
-            #9D84B7,
-            #FF6B6B
-        );
-        background-size: 300% auto;
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-        animation: shine 8s linear infinite;
-        font-size: 3.5rem;
-        font-weight: 800;
-        letter-spacing: 2px;
-        display: inline-block;
-        padding: 0.2em;
-        position: relative;
-    }
-
-    @keyframes shine {
-        0% { background-position: 0% center; }
-        100% { background-position: 300% center; }
-    }
-
-    .subtitle {
-        font-family: 'Poppins', sans-serif;
-        font-size: 1.4rem;
-        font-weight: 500;
-        color: rgba(255, 255, 255, 0.9);
-        margin-top: 0.5rem;
-        letter-spacing: 1px;
-    }
-
-    /* Responsive Design */
-    @media (max-width: 768px) {
-        .main-title {
-            font-size: 2.5rem;
-        }
-        .subtitle {
-            font-size: 1.2rem;
-        }
-    }
-
-    /* Animated Title Effect */
-    .title-emotunes {
-        background: linear-gradient(
-            to right,
-            #FF6B6B,
-            #4ECDC4,
-            #9D84B7,
-            #FF6B6B
-        );
-        background-size: 300% auto;
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-        animation: shine 8s linear infinite;
-        font-size: 3.5rem;
-        font-weight: 800;
-        letter-spacing: 2px;
-        display: inline-block;
-        padding: 0.2em;
-        position: relative;
-    }
-
-    @keyframes shine {
-        0% { background-position: 0% center; }
-        100% { background-position: 300% center; }
-    }
-
-    /* Enhanced Hover Effects */
-    .stButton > button {
-        transform: scale(1);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        box-shadow: 0px 2px 6px rgba(0,0,0,0.1);
-    }
-
-    .stButton > button:hover {
-        transform: scale(1.05) !important;
-        box-shadow: 0px 4px 12px rgba(0,0,0,0.2) !important;
-    }
-
-    .stSelectbox > div {
-        transition: all 0.3s ease !important;
-    }
-
-    .stSelectbox > div:hover {
-        transform: translateY(-2px);
-        box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
-    }
-
-    /* Spotify Connect Section */
-    .spotify-connect-card {
-        background: rgba(25, 20, 20, 0.9);
-        border-radius: 12px;
-        padding: 24px;
-        margin: 20px 0;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        animation: glow 2s ease-in-out infinite;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .spotify-connect-card::before {
-        content: '';
-        position: absolute;
-        top: -2px;
-        left: -2px;
-        right: -2px;
-        bottom: -2px;
-        background: linear-gradient(45deg, #1DB954, #191414);
-        z-index: -1;
-        animation: borderGlow 3s ease-in-out infinite;
-        border-radius: 13px;
-    }
-
-    .spotify-button {
-        background: #1DB954 !important;
+    /* Label colors */
+    .stTextInput label, .stSelectbox label {{
         color: white !important;
-        font-weight: 600 !important;
-        padding: 12px 24px !important;
-        border-radius: 25px !important;
-        border: none !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 8px !important;
-        transition: all 0.3s ease !important;
-    }
+    }}
 
-    .spotify-button:hover {
-        background: #1ed760 !important;
-        box-shadow: 0 0 20px rgba(29, 185, 84, 0.4) !important;
-    }
+    /* Sidebar styling */
+    .css-1d391kg {{
+        background: linear-gradient(to bottom,
+            {MOOD_MAPPING[st.session_state.selected_mood]["contrast"]},
+            rgba(25, 25, 35, 0.98)
+        ) !important;
+    }}
 
-    /* Mood Quote Styling */
-    .mood-quote {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        padding: 15px 25px;
-        border-radius: 12px;
-        margin: 15px 0;
-        font-family: 'Quicksand', sans-serif;
-        font-weight: 500;
-        font-size: 1.1rem;
-        color: white;
-        text-align: center;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .mood-quote::before {
-        content: '"';
-        position: absolute;
-        left: 10px;
-        top: 5px;
-        font-size: 3rem;
-        opacity: 0.2;
-        font-family: Georgia, serif;
-    }
-
-    .mood-quote::after {
-        content: '"';
-        position: absolute;
-        right: 10px;
-        bottom: -10px;
-        font-size: 3rem;
-        opacity: 0.2;
-        font-family: Georgia, serif;
-    }
-
-    /* Loading Animation */
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-
-    .loader {
-        width: 50px;
-        height: 50px;
-        border: 3px solid rgba(255,255,255,0.3);
-        border-radius: 50%;
-        border-top-color: #fff;
-        animation: spin 1s ease-in-out infinite;
-        margin: 20px auto;
-    }
-
-    .loading-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 15px;
-    }
-
-    .music-note {
-        font-size: 24px;
-        animation: bounce 1s ease infinite;
-    }
-
-    @keyframes bounce {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
-    }
-
-    @keyframes borderGlow {
-        0%, 100% { opacity: 0.5; }
-        50% { opacity: 1; }
-    }
-
-    /* Enhanced Glassmorphism */
-    .glass-card {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-radius: 16px;
-    padding: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    transition: all 0.3s ease;
-    color: white;
-        color: white;
-    }
-
-    .glass-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-    }
-
-    /* Make text inputs and labels visible */
-    .stTextInput label, .stSelectbox label, .stTextArea label {
-        color: white !important;
-    }
-    
-    .stTextInput input, .stSelectbox select, .stTextArea textarea {
-        color: white !important;
-        background-color: rgba(255, 255, 255, 0.1) !important;
-    }
-    
-    /* Make dropdown options visible */
-    .stSelectbox select option {
-        background-color: #2C3338 !important;
-        color: white !important;
-    }
-    
-    /* Make all regular text white */
-    .stMarkdown, .stText {
-        color: white !important;
-    }
-
-    /* Override Streamlit's default styles with higher specificity */
-    div[data-baseweb="input"] input[type="text"],
-    div[data-baseweb="input"] input {
-        color: black !important;
-        background-color: white !important;
-        font-weight: 500 !important;
-        border: 2px solid #9D84B7 !important;
-    }
-
-    /* Style placeholder text */
-    div[data-baseweb="input"] input::placeholder {
-        color: #666666 !important;
-        opacity: 1 !important;
-    }
-
-    /* Style the input when focused */
-    div[data-baseweb="input"]:focus-within input {
-        border-color: #9D84B7 !important;
-        box-shadow: 0 0 0 2px #9D84B7 !important;
-    }
-
-    /* Ensure label remains visible */
-    div[data-baseweb="input"] + label {
-        color: white !important;
-    }
+    /* Gradient animation */
+    @keyframes gradientBG {{
+        0% {{ background-position: 0% 50%; }}
+        50% {{ background-position: 100% 50%; }}
+        100% {{ background-position: 0% 50%; }}
+    }}
 </style>
-
-<!-- Add floating music note particles -->
-<div class="particle-container">
-    <div class="particle">♪</div>
-    <div class="particle">♫</div>
-    <div class="particle">♩</div>
-    <div class="particle">♪</div>
-    <div class="particle">♫</div>
-    <div class="particle">♬</div>
-</div>
 """, unsafe_allow_html=True)
 
 # Update the title with new styling
@@ -482,73 +194,65 @@ st.markdown(r"""
 </div>
 """, unsafe_allow_html=True)
 
-# Define mood mappings with emojis and mesmerizing color combinations
-MOOD_MAPPING = {
-    "😊 Happy": {
-        "emotion": "happy",
-        "color": "#FF7E5F",  # Warm coral
-        "gradient": ["#FEB47B", "#FF7E5F", "#FF5E62"],  # Sunset gradient
-        "secondary_gradient": ["#FFD141", "#FF8C42"],  # Golden accent
-        "contrast": "#2A2A3C",  # Deep slate
-        "icon": "🌟"
-    },
-    "😢 Sad": {
-        "emotion": "sad",
-        "color": "#5B86E5",  # Royal blue
-        "gradient": ["#36D1DC", "#5B86E5", "#3657DC"],  # Ocean depths
-        "secondary_gradient": ["#5F72BE", "#9921E8"],  # Twilight accent
-        "contrast": "#1A1A2E",  # Night blue
-        "icon": "🌧"
-    },
-    "😠 Angry": {
-        "emotion": "angry",
-        "color": "#FF5757",  # Passionate red
-        "gradient": ["#FF5757", "#8C1F1F", "#D92B2B"],  # Deep crimson
-        "secondary_gradient": ["#FF8C42", "#FF5757"],  # Fire accent
-        "contrast": "#2D142C",  # Deep purple
-        "icon": "⚡"
-    },
-    "😌 Calm": {
-        "emotion": "calm",
-        "color": "#43CEA2",  # Serene teal
-        "gradient": ["#43CEA2", "#185A9D", "#43CEA2"],  # Ocean breeze
-        "secondary_gradient": ["#96FBC4", "#43CEA2"],  # Mint accent
-        "contrast": "#1A2C38",  # Deep teal
-        "icon": "🍃"
-    },
-    "😐 Neutral": {
-        "emotion": "neutral",
-        "color": "#8E9EAB",  # Cool gray
-        "gradient": ["#8E9EAB", "#414345", "#8E9EAB"],  # Misty mountain
-        "secondary_gradient": ["#D3CCE3", "#8E9EAB"],  # Fog accent
-        "contrast": "#2C3338",  # Charcoal
-        "icon": "🌈"
-    }
-}
-
-# Define mood-specific quotes
-MOOD_QUOTES = {
-    "😊 Happy": "Turn up the volume, it's a good day!",
-    "😢 Sad": "Even the rain needs a melody.",
-    "😠 Angry": "Let the music calm your storm.",
-    "😌 Calm": "Float away on waves of harmony.",
-    "😐 Neutral": "Find your rhythm in the everyday."
-}
-
 # Create columns for better layout
-col1, col2 = st.columns([2, 1])
+col1, col2 = st.columns([3, 1])
 
 with col1:
-    # Emoji mood selection
-    selected_mood = st.selectbox(
-        "How are you feeling today?",
-        list(MOOD_MAPPING.keys()),
-        format_func=lambda x: x  # Show emojis in dropdown
+    # Create mood selection buttons in a grid
+    st.markdown("""
+    <div style='text-align: center; margin: 20px 0;'>
+        <h2 style='color: white; margin-bottom: 20px;'>How are you feeling today?</h2>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Define the mood grid layout
+    moods = {
+        "⚡ Energetic": "energetic",
+        "💝 Romantic": "romantic",
+        "💔 Heartbroken": "heartbroken",
+        "🎉 Party": "party",
+        "😠 Angry": "angry"
+    }
+
+    # Create a single row of 5 mood buttons
+    mood_cols = st.columns(5)
+
+    # Display all mood buttons in a single row
+    for idx, (mood_text, mood_key) in enumerate(moods.items()):
+        with mood_cols[idx]:
+            if st.button(
+                mood_text,
+                key=mood_key,
+                use_container_width=True,
+                type="primary" if st.session_state.selected_mood == mood_text else "secondary"
+            ):
+                update_mood(mood_text)
+
+    # Language selection with flags
+    language = st.selectbox(
+        "Preferred language for music:",
+        [
+            "🇺🇸 English",
+            "🇮🇳 Hindi",
+            "🇮🇳 Kannada",
+            "🇮🇳 Telugu",
+            "🇮🇳 Tamil"
+        ],
+        format_func=lambda x: x,
+        key="language_selector"
+    )
+
+    # Search bar with improved styling
+    search_query = st.text_input(
+        "🔍 Search songs or artists", 
+        "", 
+        help="Search for your favorite songs or artists",
+        key="main_search"  # Adding unique key
     )
 
 # Get the current mood color for dynamic styling
 def get_mood_style(selected_mood):
-    mood_data = MOOD_MAPPING.get(selected_mood, MOOD_MAPPING["😐 Neutral"])
+    mood_data = MOOD_MAPPING.get(selected_mood, MOOD_MAPPING["⚡ Energetic"])
     return fr"""
     <style>
     .stApp {{
@@ -715,10 +419,10 @@ def get_mood_style(selected_mood):
     """
 
 # Apply mood-based styling
-st.markdown(get_mood_style(selected_mood), unsafe_allow_html=True)
+st.markdown(get_mood_style(st.session_state.selected_mood), unsafe_allow_html=True)
 
 # Display mood quote after mood selection
-selected_quote = MOOD_QUOTES.get(selected_mood, "Let the music guide you.")
+selected_quote = MOOD_QUOTES.get(st.session_state.selected_mood, "Let the music guide you.")
 st.markdown(f'<div class="mood-quote">{selected_quote}</div>', unsafe_allow_html=True)
 
 # Enhanced quotes with animations and better content
@@ -736,157 +440,100 @@ quotes = [
 ]
 
 quote = random.choice(quotes)
-mood_data = MOOD_MAPPING.get(selected_mood, MOOD_MAPPING["😐 Neutral"])
+mood_data = MOOD_MAPPING.get(st.session_state.selected_mood, MOOD_MAPPING["⚡ Energetic"])
 
 st.markdown(fr"""
     <style>
-    @keyframes gradientMove {{
-        0% {{ background-position: 0% 50%; }}
-        50% {{ background-position: 100% 50%; }}
-        100% {{ background-position: 0% 50%; }}
+    @keyframes quoteGlow {{
+        0% {{ box-shadow: 0 0 20px {mood_data['gradient'][0]}66; }}
+        50% {{ box-shadow: 0 0 30px {mood_data['gradient'][1]}88; }}
+        100% {{ box-shadow: 0 0 20px {mood_data['gradient'][0]}66; }}
     }}
 
-    @keyframes borderGlow {{
-        0% {{
-            border-color: {mood_data['gradient'][0]};
-            box-shadow: 0 0 20px {mood_data['gradient'][0]}66;
-        }}
-        50% {{
-            border-color: {mood_data['gradient'][1]};
-            box-shadow: 0 0 30px {mood_data['gradient'][1]}88;
-        }}
-        100% {{
-            border-color: {mood_data['gradient'][0]};
-            box-shadow: 0 0 20px {mood_data['gradient'][0]}66;
-        }}
+    .quote-box {{
+        position: relative;
+        padding: 40px;
+        background: linear-gradient(
+            135deg,
+            {mood_data['gradient'][0]}22,
+            {mood_data['gradient'][1]}33
+        );
+        border-radius: 20px;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        margin: 30px 0;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        animation: quoteGlow 4s ease-in-out infinite;
+        overflow: hidden;
+        box-shadow: 
+            0 10px 30px {mood_data['gradient'][0]}33,
+            0 5px 15px rgba(0, 0, 0, 0.2);
     }}
 
-    @keyframes textGlow {{
-        0% {{
-            text-shadow: 0 0 10px {mood_data['gradient'][0]};
-            color: {mood_data['gradient'][0]};
-        }}
-        50% {{
-            text-shadow: 0 0 20px {mood_data['gradient'][1]};
-            color: {mood_data['gradient'][1]};
-        }}
-        100% {{
-            text-shadow: 0 0 10px {mood_data['gradient'][0]};
-            color: {mood_data['gradient'][0]};
-        }}
+    .quote-text {{
+        font-family: 'Quicksand', sans-serif;
+        font-size: 2rem;
+        font-weight: 600;
+        line-height: 1.6;
+        color: white;
+        text-shadow: 
+            /* Outline for better contrast */
+            -1px -1px 0 {mood_data['contrast']},
+            1px -1px 0 {mood_data['contrast']},
+            -1px 1px 0 {mood_data['contrast']},
+            1px 1px 0 {mood_data['contrast']},
+            /* Original glow */
+            2px 2px 4px {mood_data['gradient'][0]}99;
+        margin-bottom: 20px;
+        text-align: center;
+        letter-spacing: 0.5px;
+    }}
+
+    .quote-author {{
+        font-family: 'Poppins', sans-serif;
+        font-size: 1.2rem;
+        color: {mood_data['gradient'][2]};
+        font-weight: 500;
+        text-align: center;
+        letter-spacing: 1px;
+        text-shadow: 
+            /* Outline for better contrast */
+            -1px -1px 0 {mood_data['contrast']},
+            1px -1px 0 {mood_data['contrast']},
+            -1px 1px 0 {mood_data['contrast']},
+            1px 1px 0 {mood_data['contrast']};
+    }}
+
+    .quote-icon {{
+        font-size: 3rem;
+        margin-bottom: 20px;
+        text-align: center;
+        color: {mood_data['gradient'][1]};
+        text-shadow: 
+            /* Outline for better contrast */
+            -1px -1px 0 {mood_data['contrast']},
+            1px -1px 0 {mood_data['contrast']},
+            -1px 1px 0 {mood_data['contrast']},
+            1px 1px 0 {mood_data['contrast']},
+            /* Original glow */
+            0 0 10px {mood_data['gradient'][0]}66;
     }}
     </style>
 
-    <div style='
-        position: relative;
-        padding: 40px;
-        background: {mood_data['contrast']};
-        border-radius: 20px;
-        backdrop-filter: blur(10px);
-        margin: 30px 0;
-        border: 3px solid {mood_data['gradient'][0]};
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.3);
-        overflow: hidden;
-        animation: borderGlow 4s ease-in-out infinite;
-    '>
-        <div style='
-            position: absolute;
-            top: -20px;
-            right: -20px;
-            font-size: 100px;
-            opacity: 0.05;
-            transform: rotate(10deg);
-            animation: float 6s ease-in-out infinite;
-            color: {mood_data['gradient'][1]};
-        '>
-            {quote['icon']}
-        </div>
-        <div style='
-            position: relative;
-            z-index: 1;
-            text-align: center;
-        '>
-            <div style='
-                font-size: 3rem;
-                margin-bottom: 25px;
-                animation: textGlow 4s ease-in-out infinite;
-                background: linear-gradient(45deg, {mood_data['gradient'][0]}, {mood_data['gradient'][1]});
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                text-shadow: 0 0 20px {mood_data['gradient'][1]}88;
-            '>
-                {quote['icon']}
-            </div>
-            <p style='
-                font-size: 1.6rem;
-                font-style: italic;
-                margin-bottom: 20px;
-                line-height: 1.6;
-                color: {mood_data['gradient'][1]};
-                text-shadow: 2px 2px 4px {mood_data['contrast']};
-                font-weight: 500;
-            '>"{quote['text']}"</p>
-            <div style='
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 15px;
-                margin-top: 25px;
-            '>
-                <div style='
-                    width: 50px;
-                    height: 3px;
-                    background: linear-gradient(90deg, {mood_data['contrast']}, {mood_data['gradient'][0]});
-                '></div>
-                <p style='
-                    font-size: 1.1rem;
-                    color: {mood_data['gradient'][0]};
-                    font-weight: 600;
-                    letter-spacing: 1px;
-                '>- {quote['author']}</p>
-                <div style='
-                    width: 50px;
-                    height: 3px;
-                    background: linear-gradient(90deg, {mood_data['gradient'][1]}, {mood_data['contrast']});
-                '></div>
-            </div>
-        </div>
-        <div style='
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, 
-                {mood_data['gradient'][0]}, 
-                {mood_data['gradient'][1]}, 
-                {mood_data['gradient'][0]}
-            );
-            animation: gradientMove 6s ease infinite;
-            background-size: 200% 200%;
-        '></div>
+    <div class="quote-box">
+        <div class="quote-icon">{quote['icon']}</div>
+        <div class="quote-text">"{quote['text']}"</div>
+        <div class="quote-author">- {quote['author']}</div>
     </div>
 """, unsafe_allow_html=True)
 
 with col1:
-    # Language selection with flags
-    language = st.selectbox(
-        "Preferred language for music:",
-        ["🇺🇸 English", "🇮🇳 Hindi", "🇮🇳 Kannada"],
-        format_func=lambda x: x
-    )
-
-with col2:
-    # Search bar for songs/artists with custom styling
-    search_query = st.text_input("🔍 Search songs or artists", "", 
-        help="Search for your favorite songs or artists")
-
-# Handle search functionality
-if search_query:
-    if st.button("Search"):
-        with st.spinner("Searching..."):
-            results = search_tracks(search_query, token_info=st.session_state.token_info if st.session_state.spotify_auth else None)
-            st.session_state.search_results = results
+    # Remove duplicate search bar
+    if search_query:
+        if st.button("Search", key="search_button"):
+            with st.spinner("Searching..."):
+                results = search_tracks(search_query, token_info=st.session_state.token_info if st.session_state.spotify_auth else None)
+                st.session_state.search_results = results
 
 # Display search results if any
 if st.session_state.search_results:
@@ -935,19 +582,19 @@ if st.session_state.search_results:
                             
                     st.markdown(f"""
                         <a href='{track["url"]}' target='_blank' style='
-                                    display: inline-block;
-                                    padding: 8px 15px;
-                                    background: #1DB954;
-                                    color: white;
-                                    text-decoration: none;
-                                    border-radius: 20px;
-                                    font-size: 0.9rem;
-                                    margin: 5px 0;
-                                    transition: all 0.3s ease;
-                                '>
-                                    🎵 Open in Spotify
-                                </a>
-                            """, unsafe_allow_html=True)
+                            display: inline-block;
+                            padding: 8px 15px;
+                            background: #1DB954;
+                            color: white;
+                            text-decoration: none;
+                            border-radius: 20px;
+                            font-size: 0.9rem;
+                            margin: 5px 0;
+                            transition: all 0.3s ease;
+                        '>
+                            🎵 Open in Spotify
+                        </a>
+                    """, unsafe_allow_html=True)
                 
                 with col2:
                     if st.session_state.spotify_auth:
@@ -964,16 +611,9 @@ if st.session_state.search_results:
                                     ✅ Saved to Library
                                 </div>
                             """, unsafe_allow_html=True)
-                        else:
-                            if st.button("💚 Save", key=f"save_{track['uri']}", help="Save to your library"):
-                                if save_track_to_library(track['uri'], st.session_state.token_info):
-                                    st.success("Track saved! 🎉")
-                                    st.session_state.saved_tracks.append(track['uri'])
-                                else:
-                                    st.error("Failed to save track 😔")
 
 # Get the actual emotion from the emoji selection
-selected_emotion = MOOD_MAPPING[selected_mood]["emotion"]
+selected_emotion = MOOD_MAPPING[st.session_state.selected_mood]["emotion"]
 selected_language = language.split(" ")[1]  # Remove flag emoji
 
 # Button to get music playlists
@@ -1018,7 +658,7 @@ if st.button("🎵 Get Music Recommendations", help="Find playlists matching you
                         """, unsafe_allow_html=True)
                         
                         if playlists[i]['image']:
-                            st.image(playlists[i]['image'], use_column_width=True)
+                            st.image(playlists[i]['image'], use_container_width=True)
                         if playlists[i].get('description'):
                             st.markdown(fr"""
                                 <div style='
@@ -1056,7 +696,7 @@ if st.button("🎵 Get Music Recommendations", help="Find playlists matching you
                         """, unsafe_allow_html=True)
                         
                         if playlists[i+1]['image']:
-                            st.image(playlists[i+1]['image'], use_column_width=True)
+                            st.image(playlists[i+1]['image'], use_container_width=True)
                         if playlists[i+1].get('description'):
                             st.markdown(fr"""
                                 <div style='
@@ -1073,14 +713,38 @@ if st.button("🎵 Get Music Recommendations", help="Find playlists matching you
     else:
         st.warning("No matching playlists found. Try different settings! 🎵")
 
+# Add custom CSS for the sidebar
+st.markdown("""
+<style>
+    /* Style the entire sidebar */
+    .css-1d391kg {
+        background: linear-gradient(135deg, rgba(45, 45, 60, 0.9), rgba(30, 30, 40, 0.9)) !important;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    /* Style sidebar elements container */
+    .css-163ttbj {
+        background: transparent !important;
+    }
+    
+    /* Style the sidebar content */
+    .css-1d391kg > div {
+        background: transparent !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # Spotify Authentication Section in Sidebar
 st.sidebar.markdown(r"""
     <div style='
-        background: linear-gradient(135deg, rgba(29,185,84,0.1) 0%, rgba(29,185,84,0.2) 100%);
+        background: linear-gradient(135deg, rgba(29, 29, 40, 0.95), rgba(35, 35, 45, 0.95));
         padding: 20px;
         border-radius: 15px;
         backdrop-filter: blur(10px);
-        border: 1px solid rgba(29,185,84,0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        margin-bottom: 20px;
     '>
         <h2 style='
             color: #1DB954;
@@ -1097,7 +761,16 @@ st.sidebar.markdown(r"""
 if not st.session_state.spotify_auth:
     auth_url = sp_oauth.get_authorize_url()
     st.sidebar.markdown(r'''
-        <div style='text-align: center; margin: 20px 0;'>
+        <div style='
+            text-align: center;
+            margin: 20px 0;
+            background: linear-gradient(135deg, rgba(29, 29, 40, 0.95), rgba(35, 35, 45, 0.95));
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        '>
             <p style='margin-bottom: 15px; color: #1DB954; font-weight: 600;'>
                 Connect your Spotify account to unlock all features:
             </p>
@@ -1112,26 +785,6 @@ if not st.session_state.spotify_auth:
                 <li style='margin: 10px 0;'>✓ Create custom playlists</li>
                 <li style='margin: 10px 0;'>✓ Get personalized recommendations</li>
             </ul>
-            <a href="{auth_url}" target="_self">
-                <button style="
-                    background-color: #1DB954;
-                    color: white;
-                    padding: 12px 24px;
-                    border: none;
-                    border-radius: 24px;
-                    cursor: pointer;
-                    font-weight: bold;
-                    width: 100%;
-                    margin: 8px 0;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 10px;
-                    transition: all 0.3s ease;
-                ">
-                    <span>🔗</span> Connect with Spotify
-                </button>
-            </a>
         </div>
     ''', unsafe_allow_html=True)
     
@@ -1170,42 +823,46 @@ else:
         </div>
     """, unsafe_allow_html=True)
     
-    # Create playlist section with enhanced styling
+    # Create playlist section
     st.sidebar.markdown(r"""
-            <div style='
-        background: rgba(255,255,255,0.05);
-        padding: 20px;
-        border-radius: 15px;
-        margin: 20px 0;
-        color: white;
-    '>
-        <h3 style='margin-bottom: 15px; color: white;'>Create Playlist</h3>
+        <div style='
+            background: rgba(255,255,255,0.05);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            color: white;
+        '>
+            <h3 style='margin-bottom: 15px; color: white;'>Create Playlist</h3>
         </div>
     """, unsafe_allow_html=True)
     
-    playlist_name = st.sidebar.text_input("Playlist Name", f"My {selected_emotion} Mix")
-    playlist_description = st.sidebar.text_area("Description", f"A {selected_emotion} playlist created with EmoTunes")
+    playlist_name = st.sidebar.text_input(
+        "Playlist Name", 
+        f"My {st.session_state.selected_mood.split()[1]} Mix",
+        key="playlist_name"  # Adding unique key
+    )
+    playlist_description = st.sidebar.text_area(
+        "Description", 
+        f"A {st.session_state.selected_mood.split()[1].lower()} playlist created with EmoTunes",
+        key="playlist_description"  # Adding unique key
+    )
     
-    if st.sidebar.button("Create Playlist 🎵", help="Create a new playlist with your saved tracks"):
+    if st.sidebar.button("Create Playlist 🎵"):
         if st.session_state.saved_tracks:
             sp = get_spotify_client(st.session_state.token_info)
             try:
-                # Get current user's ID
                 user_profile = sp.current_user()
                 user_id = user_profile['id']
                 
-                # Create playlist with progress bar
                 with st.sidebar.spinner("Creating your playlist... 🎵"):
                     playlist = create_playlist(user_id, playlist_name, playlist_description, st.session_state.token_info)
                     if playlist:
-                        # Add tracks to playlist
                         if add_tracks_to_playlist(playlist['id'], st.session_state.saved_tracks, st.session_state.token_info):
                             st.sidebar.success("Playlist created successfully! 🎉")
-                            st.session_state.saved_tracks = []  # Clear saved tracks
+                            st.session_state.saved_tracks = []
                             
-                            # Display playlist link
                             st.sidebar.markdown(fr"""
-                                <a href='{playlist['external_urls']['spotify']}' target='_blank' style='
+                                <a href='{playlist["external_urls"]["spotify"]}' target='_blank' style='
                                     display: inline-block;
                                     width: 100%;
                                     padding: 10px;
@@ -1228,7 +885,7 @@ else:
         else:
             st.sidebar.warning("Save some tracks first! 🎵")
     
-    if st.sidebar.button("Disconnect from Spotify", help="Disconnect your Spotify account"):
+    if st.sidebar.button("Disconnect from Spotify"):
         st.session_state.spotify_auth = False
         st.session_state.token_info = None
         st.session_state.saved_tracks = []
@@ -1252,4 +909,29 @@ if st.button("✨ Spark Another Vibe!", help="Click for a surprise!"):
                 ✨ Yay! Keep the good vibes flowing! ✨
             </h3>
         </div>
-    """, unsafe_allow_html=True)      
+    """, unsafe_allow_html=True)
+
+# Add custom CSS to ensure emojis stay visible
+st.markdown("""
+<style>
+    /* Ensure emojis are visible in buttons */
+    .stButton button {
+        font-family: "Segoe UI Emoji", "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Symbol", "Android Emoji", "EmojiSymbols" !important;
+        font-size: 1rem !important;
+    }
+    
+    /* Improve button appearance */
+    .stButton button {
+        min-height: 45px !important;
+        white-space: normal !important;
+        height: auto !important;
+        padding: 8px 16px !important;
+    }
+    
+    /* Make selected button more visible */
+    .stButton button[kind="primary"] {
+        border: 2px solid white !important;
+        font-weight: bold !important;
+    }
+</style>
+""", unsafe_allow_html=True)      
